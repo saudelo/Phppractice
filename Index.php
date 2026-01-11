@@ -1,41 +1,65 @@
-<?php
-// File to store tasks
-$tasksFile = 'tasks.json';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Full-Stack PHP To-Do List</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 2em auto; }
+        h2 { color: #2c3e50; }
+        ul { list-style-type: none; padding: 0; }
+        li { background: #ecf0f1; margin: 5px 0; padding: 10px; border-radius: 5px; }
+        input[type=text] { padding: 8px; width: 70%; margin-right: 10px; }
+        button { padding: 8px 12px; }
+    </style>
+</head>
+<body>
 
-// Load existing tasks from the file
-if (file_exists($tasksFile)) {
-    $tasks = json_decode(file_get_contents($tasksFile), true);
-} else {
-    $tasks = [];
+<h2>My Full-Stack PHP To-Do List</h2>
+
+<form id="task-form">
+    <input type="text" id="task" placeholder="New task" required>
+    <button type="submit">Add Task</button>
+</form>
+
+<ul id="task-list">
+    <!-- Tasks will be dynamically inserted here -->
+</ul>
+
+<script>
+async function fetchTasks() {
+    const res = await fetch('tasks_api.php');
+    const data = await res.json();
+    displayTasks(data);
 }
 
-// Add a new task via POST
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['task'])) {
-    $newTask = [
-        'id' => count($tasks) + 1,
-        'task' => htmlspecialchars($_POST['task'])
-    ];
-    $tasks[] = $newTask;
-
-    // Save tasks back to the file
-    file_put_contents($tasksFile, json_encode($tasks, JSON_PRETTY_PRINT));
+function displayTasks(tasks) {
+    const ul = document.getElementById('task-list');
+    ul.innerHTML = '';
+    tasks.forEach(t => {
+        const li = document.createElement('li');
+        li.textContent = `${t.id}: ${t.task}`;
+        ul.appendChild(li);
+    });
 }
 
-// Display tasks
-echo "<h2>My PHP To-Do List</h2>";
-if (!empty($tasks)) {
-    echo "<ul>";
-    foreach ($tasks as $task) {
-        echo "<li>{$task['id']}: {$task['task']}</li>";
-    }
-    echo "</ul>";
-} else {
-    echo "<p>No tasks yet!</p>";
-}
+document.getElementById('task-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const taskInput = document.getElementById('task');
+    if (!taskInput.value.trim()) return;
 
-// Form to add tasks
-echo '<form method="POST">
-        <input type="text" name="task" placeholder="New task" required>
-        <button type="submit">Add Task</button>
-      </form>';
-?>
+    await fetch('tasks_api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task: taskInput.value })
+    });
+
+    taskInput.value = '';
+    fetchTasks();
+});
+
+// Load tasks when page loads
+fetchTasks();
+</script>
+
+</body>
+</html>
